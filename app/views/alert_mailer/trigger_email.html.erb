@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  </head>
+  <body>
+    <h1>Hi <%= @user.username %>! Your Alert has triggered</h1>
+    <p>
+      You are receiving this notification because
+      the price of <%= @alert.symbol %> has reached <%= @price %> $
+      which has triggered a alert which you created on  <%= @alert.created_at %>.
+    </p>
+  </body>
+</html>
