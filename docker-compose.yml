@@ -1,0 +1,91 @@
+version: "3.8"
+
+services:
+  database:
+    image: postgres
+    volumes:
+      - data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+
+  cache:
+    image: 'bitnami/redis:latest'
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    hostname: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:15672"]
+      interval: 2s
+      timeout: 10s
+      retries: 20
+    
+  server:
+    build:
+      context: .
+      dockerfile: DOCKERFILE.api
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -e production -p 8080 -b '0.0.0.0'"
+    env_file: .env
+    environment:
+      - REDIS_HOST=cache
+      - DB_HOST=database
+      - DB_USERNAME=postgres
+
+    depends_on:
+      - database
+      - cache
+    ports:
+      - "8080:8080"
+
+  binance_listner:
+    build:
+      context: .
+      dockerfile: DOCKERFILE.binance_listner
+    command: bash -c "rails binance_listner:listen"
+    env_file: .env
+    environment:
+      - CACHE_PASSWORD=password
+      - CACHE_HOST=cache
+      - DB_HOST=database
+      - DB_USERNAME=postgres
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    restart: on-failure
+
+    depends_on:
+      - rabbitmq
+      - database
+      - cache
+
+    links:
+      - rabbitmq
+
+  email_service:
+    build:
+      context: .
+      dockerfile: DOCKERFILE.email_service
+    command: bash -c "rails email_service:start RAILS_ENV=production" 
+    env_file: .env
+    environment:
+      - CACHE_PASSWORD=password
+      - CACHE_HOST=cache
+      - DB_HOST=database
+      - DB_USERNAME=postgres
+      - RABBITMQ_HOST=guest
+      - RABBITMQ_USER=guest
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - database
+      - cache
+    links:
+      - rabbitmq
+
+volumes:
+  data:

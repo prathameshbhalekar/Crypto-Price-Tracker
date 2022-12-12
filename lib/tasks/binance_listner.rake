@@ -6,7 +6,13 @@ namespace :binance_listner do
     desc 'Listen to binance websocket and push messages to queue'
     task :listen do
       
-      connection = Bunny.new(hostname: ENV["RABBITMQ_HOST"])
+      connection = Bunny.new(
+        host: 'rabbitmq',
+        port: 5672,
+        vhost: '/',
+        user: ENV['RABBITMQ_USER'],
+        password: ENV['RABBITMQ_PASSWORD'])
+
       channel = nil
       queue = nil
 
@@ -21,6 +27,7 @@ namespace :binance_listner do
         end
 
         ws.on :message do |event|
+          p event.data
           channel.default_exchange.publish(event.data, routing_key: queue.name)
         end
 

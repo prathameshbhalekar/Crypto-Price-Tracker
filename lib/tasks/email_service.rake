@@ -3,7 +3,14 @@ require 'bunny'
 namespace :email_service do
     desc 'Process alerts from queue messages'
     task :start => [:environment] do
-        connection = Bunny.new(hostname: ENV["RABBITMQ_HOST"])
+       
+        connection = Bunny.new(
+        host: 'rabbitmq',
+        port: 5672,
+        vhost: '/',
+        user: ENV['RABBITMQ_USER'],
+        password: ENV['RABBITMQ_PASSWORD'])
+
         connection.start
 
         channel = connection.create_channel
@@ -13,6 +20,7 @@ namespace :email_service do
         begin
             queue.subscribe(manual_ack: true, block: true) do |_delivery_info, _properties, body|
                 parsed = JSON.parse(body)
+                p parsed
                 price =  parsed['p'].to_f
                 
                 triggered_alerts = Alert
