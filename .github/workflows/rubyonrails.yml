@@ -17,6 +17,7 @@ jobs:
       - name: Build and run test
         env:
           RAILS_ENV: test
+          JWT_SECRET: jwt_secret
         
         run: |
           sudo apt-get -yqq install libpq-dev
